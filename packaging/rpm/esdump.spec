@@ -1,6 +1,6 @@
 Summary:    Stream documents from elasticsearch to stdout.
 Name:       esdump
-Version:    0.1.0
+Version:    0.1.1
 Release:    0
 License:    GPL
 ExclusiveArch:  x86_64
