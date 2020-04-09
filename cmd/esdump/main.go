@@ -32,7 +32,7 @@ var (
 First written to extract samples from https:/search.fatcat.wiki, but might
 be more generic.
 
-    $ esdump -server https://search.fatcat.wiki -index fatcat_release -q 'affiliation:"alberta"' > docs.ndj
+    $ esdump -server https://search.fatcat.wiki -index fatcat_release -q 'affiliation:"alberta"'
 
 `
 )
