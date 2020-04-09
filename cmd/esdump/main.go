@@ -14,18 +14,27 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/sethgrid/pester"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	query   = flag.String("q", "", "query to run, empty means match all, example: 'affiliation:\"alberta\"'")
+	query   = flag.String("q", "web+archiving", "query to run, empty means match all, example: 'affiliation:\"alberta\"'")
 	index   = flag.String("i", "fatcat_release", "index name")
 	server  = flag.String("s", "https://search.fatcat.wiki", "elasticsearch server")
-	scroll  = flag.String("scroll", "30m", "context timeout")
+	scroll  = flag.String("scroll", "10m", "context timeout")
 	size    = flag.Int("size", 1000, "batch size")
 	verbose = flag.Bool("verbose", false, "be verbose")
+
+	exampleUsage = `esdump uses the elasticsearch scroll API to stream documents to stdout.
+First written to extract samples from https:/search.fatcat.wiki, but might
+be more generic.
+
+    $ esdump -server https://search.fatcat.wiki -index fatcat_release -q 'affiliation:"alberta"' > docs.ndj
+
+`
 )
 
 // SearchResponse is an basic search response with an unparsed source field.
@@ -167,6 +176,11 @@ func trim(s string, l int, ellipsis string) string {
 }
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), exampleUsage)
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 	if !*verbose {
 		log.SetOutput(ioutil.Discard)
