@@ -16,6 +16,14 @@ use
 [DELETE](https://github.com/elastic/go-elasticsearch/blob/6f36a473b19f05f20933da8f59347b308ab46594/esapi/api.clear_scroll.go#L60))
 so this tools work with read-only servers, that only allow GET.
 
+## Install
+
+```
+$ go get github.com/miku/esdump/cmd/esdump
+```
+
+Or via a [release](https://github.com/miku/esdump/releases).
+
 ## Usage
 
 ```
