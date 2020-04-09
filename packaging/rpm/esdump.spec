@@ -22,7 +22,7 @@ Stream documents from elasticsearch to stdout.
 %install
 
 mkdir -p $RPM_BUILD_ROOT/usr/local/bin
-install -m 755 ttarc $RPM_BUILD_ROOT/usr/local/bin
+install -m 755 esdump $RPM_BUILD_ROOT/usr/local/bin
 
 %post
 
