@@ -6,6 +6,15 @@ API](https://www.elastic.co/guide/en/elasticsearch/guide/master/scroll.html#scro
 Just like [solrdump](https://github.com/ubleipzig/solrdump), but for
 [elasticsearch](elastic.co/).
 
+Libraries can use both GET and POST requests to issue scroll requests.
+
+* [elasticsearch-py](https://github.com/elastic/elasticsearch-py/blob/c0767a9569a719dcb15adec91a88afc32b27b1b0/elasticsearch/client/__init__.py#L1300-L1323) uses POST
+* [esapi](https://github.com/elastic/go-elasticsearch/blob/6f36a473b19f05f20933da8f59347b308ab46594/esapi/api.scroll.go#L65) uses GET
+
+This tool uses HTTP GET only, and does not clear scrolls (which would probably
+use
+[DELETE](https://github.com/elastic/go-elasticsearch/blob/6f36a473b19f05f20933da8f59347b308ab46594/esapi/api.clear_scroll.go#L60))
+so this tools work with read-only servers, that only allow GET.
 
 ## Usage
 
