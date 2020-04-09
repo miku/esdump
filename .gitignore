@@ -17,4 +17,6 @@
 /esdump
 /packaging/**/*.deb
 esdump*deb
+esdump*rpm
 /packaging/deb/esdump/usr/*
+
