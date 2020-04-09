@@ -15,3 +15,6 @@
 # vendor/
 
 /esdump
+/packaging/**/*.deb
+esdump*deb
+/packaging/deb/esdump/usr/*
