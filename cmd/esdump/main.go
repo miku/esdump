@@ -1,8 +1,8 @@
 // esdump uses the elasticsearch scroll API to stream documents to stdout.
 // First written to extract samples from https:/search.fatcat.wiki, but might
-// be more generic.
+// be more generic. It uses HTTP GET only.
 //
-// $ esdump -server https://search.fatcat.wiki -index fatcat_release -q 'affiliation:"alberta"' > docs.ndj
+// $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web+archiving'
 //
 package main
 
@@ -21,20 +21,24 @@ import (
 )
 
 var (
-	query   = flag.String("q", "web+archiving", "query to run, empty means match all, example: 'affiliation:\"alberta\"'")
-	index   = flag.String("i", "fatcat_release", "index name")
-	server  = flag.String("s", "https://search.fatcat.wiki", "elasticsearch server")
-	scroll  = flag.String("scroll", "10m", "context timeout")
-	size    = flag.Int("size", 1000, "batch size")
-	verbose = flag.Bool("verbose", false, "be verbose")
+	query       = flag.String("q", "web+archiving", "query to run, empty means match all, example: 'affiliation:\"alberta\"'")
+	index       = flag.String("i", "fatcat_release", "index name")
+	server      = flag.String("s", "https://search.fatcat.wiki", "elasticsearch server")
+	scroll      = flag.String("scroll", "10m", "context timeout")
+	size        = flag.Int("size", 1000, "batch size")
+	verbose     = flag.Bool("verbose", false, "be verbose")
+	showVersion = flag.Bool("v", false, "show version")
 
-	exampleUsage = `esdump uses the elasticsearch scroll API to stream documents to stdout.
-First written to extract samples from https:/search.fatcat.wiki, but might
-be more generic.
+	exampleUsage = `esdump uses the elasticsearch scroll API to stream
+documents to stdout.  First written to extract samples from
+https:/search.fatcat.wiki (a scholarly preservation and discovery project).
 
-    $ esdump -server https://search.fatcat.wiki -index fatcat_release -q 'affiliation:"alberta"'
+    $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web+archiving'
 
 `
+	Version   = "0.1.2"
+	Commit    = "dev"
+	Buildtime = ""
 )
 
 // SearchResponse is an basic search response with an unparsed source field.
@@ -63,18 +67,18 @@ type SearchResponse struct {
 
 // BasicScroller abstracts iteration over larger result sets via
 // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-body.html#request-body-search-scroll.
-// Not using the official esapi since esapi uses POST, whereas our public HTTP
-// endpoint disallows anything but GET requests.
+// Not using the official since esapi (may) use POST, whereas some
+// endpoints disallow anything but GET requests.
 type BasicScroller struct {
-	Server string
+	Server string // https://search.elastic.io
 	Index  string
-	Query  string
-	Scroll string // timeout, e.g. "5m"
+	Query  string // note: query is not escaped or encoded, e.g. use 'hello+world' or 'name:"alonzo+church"'
+	Scroll string // context timeout, e.g. "5m"
 	Size   int    // number of docs per request
 
-	total    int // docs already received
-	scrollID string
-	buf      bytes.Buffer
+	total    int          // docs already received
+	scrollID string       // will be determined by first request, might change during the scroll
+	buf      bytes.Buffer // buffer for response body
 	err      error
 }
 
@@ -97,7 +101,9 @@ func (s *BasicScroller) getScrollID() (scrollID string, err error) {
 	return sr.ScrollID, nil
 }
 
-// Next fetches the next batch, which is accessible via Bytes or String methods.
+// Next fetches the next batch, which is accessible via Bytes or String
+// methods. Returns true, if successful, false if stream ended or an error
+// occured. The error can be accessed separately.
 func (s *BasicScroller) Next() bool {
 	if s.err != nil {
 		return false
@@ -167,14 +173,6 @@ func (s *BasicScroller) Err() error {
 	return s.err
 }
 
-// trim string to length.
-func trim(s string, l int, ellipsis string) string {
-	if len(s) < l {
-		return s
-	}
-	return s[:l] + ellipsis
-}
-
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), exampleUsage)
@@ -182,6 +180,10 @@ func main() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+	if *showVersion {
+		fmt.Printf("%s %s %s\n", Version, Commit, Buildtime)
+		os.Exit(0)
+	}
 	if !*verbose {
 		log.SetOutput(ioutil.Discard)
 	}
@@ -198,4 +200,12 @@ func main() {
 	if ss.Err() != nil {
 		log.Fatal(ss.Err())
 	}
+}
+
+// trim string to length.
+func trim(s string, l int, ellipsis string) string {
+	if len(s) < l {
+		return s
+	}
+	return s[:l] + ellipsis
 }
