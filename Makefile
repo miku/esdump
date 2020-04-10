@@ -2,10 +2,10 @@ SHELL := /bin/bash
 TARGETS := esdump
 PKGNAME := esdump
 
-VERSION := $(shell git rev-parse --short HEAD)
+COMMIT := $(shell git rev-parse --short HEAD)
 BUILDTIME := $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 
-GOLDFLAGS += -X main.Version=$(VERSION)
+GOLDFLAGS += -X main.Commit=$(COMMIT)
 GOLDFLAGS += -X main.Buildtime=$(BUILDTIME)
 GOFLAGS = -ldflags "$(GOLDFLAGS)"
 
