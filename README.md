@@ -27,14 +27,14 @@ Or via a [release](https://github.com/miku/esdump/releases).
 ## Usage
 
 ```
-$ esdump -h
-esdump uses the elasticsearch scroll API to stream documents to stdout.
-First written to extract samples from https:/search.fatcat.wiki, but might
-be more generic.
+esdump uses the elasticsearch scroll API to stream
+documents to stdout. First written to extract samples from
+https:/search.fatcat.wiki (a scholarly communications preservation and
+discovery project).
 
-    $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'affiliation:"alberta"'
+    $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web+archiving'
 
-Usage of ./esdump:
+Usage of esdump:
   -i string
         index name (default "fatcat_release")
   -q string
@@ -45,6 +45,7 @@ Usage of ./esdump:
         context timeout (default "10m")
   -size int
         batch size (default 1000)
+  -v    show version
   -verbose
         be verbose
 ```

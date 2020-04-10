@@ -31,8 +31,9 @@ var (
 	showVersion = flag.Bool("v", false, "show version")
 
 	exampleUsage = `esdump uses the elasticsearch scroll API to stream
-documents to stdout.  First written to extract samples from
-https:/search.fatcat.wiki (a scholarly preservation and discovery project).
+documents to stdout. First written to extract samples from
+https:/search.fatcat.wiki (a scholarly communications preservation and
+discovery project).
 
     $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web+archiving'
 
