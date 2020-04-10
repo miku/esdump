@@ -49,3 +49,8 @@ Usage of ./esdump:
         be verbose
 ```
 
+## Performance data points
+
+```
+925636 docs in 4m47.460217252s (3220 docs/s)
+```
