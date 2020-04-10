@@ -159,6 +159,9 @@ func (s *BasicScroller) Next() bool {
 	s.total += len(sr.Hits.Hits)
 	log.Printf("fetched=%d/%d, received=%d", s.total, sr.Hits.Total, s.buf.Len())
 	log.Println(shorten(s.id, 40))
+	if len(sr.Hits.Hits) == 0 && int64(s.total) != sr.Hits.Total {
+		log.Printf("warn: partial result")
+	}
 	return len(sr.Hits.Hits) > 0
 }
 
