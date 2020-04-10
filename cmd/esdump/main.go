@@ -67,8 +67,8 @@ type SearchResponse struct {
 
 // BasicScroller abstracts iteration over larger result sets via
 // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-request-body.html#request-body-search-scroll.
-// Not using the official since esapi (may) use POST, whereas some
-// endpoints disallow anything but GET requests.
+// Not using the official library since esapi (may) use POST (and other verbs),
+// whereas some endpoints disallow anything but GET requests.
 type BasicScroller struct {
 	Server string // https://search.elastic.io
 	Index  string
@@ -76,27 +76,30 @@ type BasicScroller struct {
 	Scroll string // context timeout, e.g. "5m"
 	Size   int    // number of docs per request
 
-	total    int          // docs already received
-	scrollID string       // will be determined by first request, might change during the scroll
-	buf      bytes.Buffer // buffer for response body
-	err      error
+	id    string       // will be determined by first request, might change during the scroll
+	buf   bytes.Buffer // buffer for response body
+	total int          // docs already received
+	err   error
 }
 
-// getScrollID returns a scroll identifier for a given index and query.
-func (s *BasicScroller) getScrollID() (scrollID string, err error) {
+// initialRequest returns a scroll identifier for a given index and query.
+func (s *BasicScroller) initialRequest() (id string, err error) {
 	var (
 		link = fmt.Sprintf(`%s/%s/_search?scroll=%s&size=%d&q=%s`, s.Server, s.Index, s.Scroll, s.Size, s.Query)
+		resp *http.Response
 		sr   SearchResponse
 	)
 	log.Printf("init: %s", link)
-	resp, err := pester.Get(link)
+	resp, err = pester.Get(link)
 	if err != nil {
-		return "", err
+		return
 	}
 	defer resp.Body.Close()
-	if err := json.NewDecoder(resp.Body).Decode(&sr); err != nil {
-		return "", err
+	tee := io.TeeReader(resp.Body, &s.buf)
+	if err = json.NewDecoder(tee).Decode(&sr); err != nil {
+		return
 	}
+	s.total += len(sr.Hits.Hits)
 	log.Printf("init: %s", trim(sr.ScrollID, 25, "..."))
 	return sr.ScrollID, nil
 }
@@ -108,8 +111,9 @@ func (s *BasicScroller) Next() bool {
 	if s.err != nil {
 		return false
 	}
-	if s.scrollID == "" {
-		s.scrollID, s.err = s.getScrollID()
+	if s.id == "" {
+		s.id, s.err = s.initialRequest()
+		return s.err == nil
 	}
 	if s.err != nil {
 		return false
@@ -119,7 +123,7 @@ func (s *BasicScroller) Next() bool {
 		ScrollID string `json:"scroll_id"`
 	}{
 		Scroll:   s.Scroll,
-		ScrollID: s.scrollID,
+		ScrollID: s.id,
 	}
 	var (
 		link = fmt.Sprintf("%s/_search/scroll", s.Server)
@@ -151,10 +155,10 @@ func (s *BasicScroller) Next() bool {
 	if s.err = json.Unmarshal(s.buf.Bytes(), &sr); s.err != nil {
 		return false
 	}
-	s.scrollID = sr.ScrollID
+	s.id = sr.ScrollID
 	s.total += len(sr.Hits.Hits)
 	log.Printf("fetched=%d/%d, received=%d", s.total, sr.Hits.Total, s.buf.Len())
-	log.Println(trim(s.scrollID, 30, "..."))
+	log.Println(shorten(s.id, 40))
 	return len(sr.Hits.Hits) > 0
 }
 
@@ -200,6 +204,14 @@ func main() {
 	if ss.Err() != nil {
 		log.Fatal(ss.Err())
 	}
+}
+
+func shorten(s string, l int) string {
+	if len(s) < l {
+		return s
+	}
+	k := l / 2
+	return s[:k] + " [...] " + s[len(s)-k:] + fmt.Sprintf(" [%d]", len(s))
 }
 
 // trim string to length.
