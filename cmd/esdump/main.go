@@ -15,6 +15,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/sethgrid/pester"
 	log "github.com/sirupsen/logrus"
@@ -76,14 +77,16 @@ type BasicScroller struct {
 	Scroll string // context timeout, e.g. "5m"
 	Size   int    // number of docs per request
 
-	id    string       // will be determined by first request, might change during the scroll
-	buf   bytes.Buffer // buffer for response body
-	total int          // docs already received
-	err   error
+	id      string       // will be determined by first request, might change during the scroll
+	buf     bytes.Buffer // buffer for response body
+	total   int          // docs already received
+	err     error
+	started time.Time
 }
 
 // initialRequest returns a scroll identifier for a given index and query.
 func (s *BasicScroller) initialRequest() (id string, err error) {
+	s.started = time.Now()
 	var (
 		link = fmt.Sprintf(`%s/%s/_search?scroll=%s&size=%d&q=%s`, s.Server, s.Index, s.Scroll, s.Size, s.Query)
 		resp *http.Response
@@ -157,12 +160,13 @@ func (s *BasicScroller) Next() bool {
 	}
 	s.id = sr.ScrollID
 	s.total += len(sr.Hits.Hits)
-	log.Printf("fetched=%d/%d, received=%d", s.total, sr.Hits.Total, s.buf.Len())
+	log.Printf("fetched=%d/%d (%0.2f%%), received=%d",
+		s.total, sr.Hits.Total, float64(s.total)/float64(sr.Hits.Total)*100, s.buf.Len())
 	log.Println(shorten(s.id, 40))
 	if len(sr.Hits.Hits) == 0 && int64(s.total) != sr.Hits.Total {
 		log.Printf("warn: partial result")
 	}
-	return len(sr.Hits.Hits) > 0
+	return len(sr.Hits.Hits) > 0 && int64(s.total) < sr.Hits.Total
 }
 
 // Bytes returns the current response body.
@@ -178,6 +182,16 @@ func (s *BasicScroller) String() string {
 // Err returns any error.
 func (s *BasicScroller) Err() error {
 	return s.err
+}
+
+// Elapsed returns the elasped time.
+func (s *BasicScroller) Elapsed() time.Duration {
+	return time.Since(s.started)
+}
+
+// Total returns total documents retrieved.
+func (s *BasicScroller) Total() int {
+	return s.total
 }
 
 func main() {
@@ -206,6 +220,9 @@ func main() {
 	}
 	if ss.Err() != nil {
 		log.Fatal(ss.Err())
+	}
+	if *verbose {
+		log.Printf("%d docs in %v (%d docs/s)", ss.Total(), ss.Elapsed(), int(float64(ss.Total())/ss.Elapsed().Seconds()))
 	}
 }
 
