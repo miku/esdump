@@ -2,7 +2,7 @@
 // First written to extract samples from https:/search.fatcat.wiki, but might
 // be more generic. It uses HTTP GET only.
 //
-// $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web+archiving'
+// $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web archiving'
 //
 package main
 
@@ -14,6 +14,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -22,10 +23,10 @@ import (
 )
 
 var (
-	query       = flag.String("q", "web+archiving", "query to run, empty means match all, example: 'affiliation:\"alberta\"'")
+	query       = flag.String("q", "web archiving", `query to run, empty means match all, example: 'affiliation:"alberta"'`)
 	index       = flag.String("i", "fatcat_release", "index name")
 	server      = flag.String("s", "https://search.fatcat.wiki", "elasticsearch server")
-	scroll      = flag.String("scroll", "10m", "context timeout")
+	scroll      = flag.String("scroll", "5m", "context timeout")
 	size        = flag.Int("size", 1000, "batch size")
 	verbose     = flag.Bool("verbose", false, "be verbose")
 	showVersion = flag.Bool("v", false, "show version")
@@ -35,7 +36,7 @@ documents to stdout. First written to extract samples from
 https:/search.fatcat.wiki (a scholarly communications preservation and
 discovery project).
 
-    $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web+archiving'
+    $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web archiving'
 
 `
 	Version   = "0.1.4"
@@ -89,7 +90,7 @@ type BasicScroller struct {
 func (s *BasicScroller) initialRequest() (id string, err error) {
 	s.started = time.Now()
 	var (
-		link = fmt.Sprintf(`%s/%s/_search?scroll=%s&size=%d&q=%s`, s.Server, s.Index, s.Scroll, s.Size, s.Query)
+		link = fmt.Sprintf(`%s/%s/_search?scroll=%s&size=%d&q=%s`, s.Server, s.Index, s.Scroll, s.Size, url.QueryEscape(s.Query))
 		resp *http.Response
 		sr   SearchResponse
 	)

@@ -32,13 +32,13 @@ documents to stdout. First written to extract samples from
 https:/search.fatcat.wiki (a scholarly communications preservation and
 discovery project).
 
-    $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web+archiving'
+    $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web archiving'
 
 Usage of esdump:
   -i string
         index name (default "fatcat_release")
   -q string
-        query to run, empty means match all, example: 'affiliation:"alberta"' (default "web+archiving")
+        query to run, empty means match all, example: 'affiliation:"alberta"' (default "web archiving")
   -s string
         elasticsearch server (default "https://search.fatcat.wiki")
   -scroll string
