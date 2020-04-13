@@ -152,7 +152,7 @@ func (s *BasicScroller) Next() bool {
 	defer resp.Body.Close()
 	s.buf.Reset()
 	if _, s.err = io.Copy(&s.buf, resp.Body); s.err != nil {
-		log.Printf("body was: %s", trim(s.buf.String(), 1024, fmt.Sprint("... (%d)", s.buf.Len())))
+		log.Printf("body was: %s", trim(s.buf.String(), 1024, fmt.Sprintf("... (%d)", s.buf.Len())))
 		return false
 	}
 	var sr SearchResponse
