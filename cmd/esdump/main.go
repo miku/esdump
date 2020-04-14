@@ -203,11 +203,46 @@ func (s *BasicScroller) Total() int {
 // requests and will write the responses to the given writer.
 func identifierDump(r io.Reader, w io.Writer) error {
 	var (
-		br     = bufio.NewReader(r)
-		batch  []string
-		quoted []string
-		link   string
+		br    = bufio.NewReader(r)
+		batch []string
 	)
+	queryFunc := func(batch []string) error {
+		log.Println(batch)
+		var (
+			quoted []string
+			link   string
+		)
+		for _, id := range batch {
+			quoted = append(quoted, fmt.Sprintf("%q", id))
+		}
+		// TODO: marshal this.
+		query := fmt.Sprintf(`{"query": {"ids": {"values": [%s]}}}`, strings.Join(quoted, ", "))
+		if *verbose {
+			log.Printf("%s", shorten(query, 80))
+		}
+		if *index == "" {
+			link = fmt.Sprintf("%s/_search", *server)
+		} else {
+			link = fmt.Sprintf("%s/%s/_search", *server, *index)
+		}
+		req, err := http.NewRequest("GET", link, strings.NewReader(query))
+		req.Header.Set("Content-Type", "application/json")
+		if err != nil {
+			return err
+		}
+		resp, err := pester.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		if _, err := io.Copy(w, resp.Body); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, "\n"); err != nil {
+			return err
+		}
+		return nil
+	}
 	for {
 		line, err := br.ReadString('\n')
 		if err == io.EOF {
@@ -216,44 +251,20 @@ func identifierDump(r io.Reader, w io.Writer) error {
 		if err != nil {
 			return err
 		}
-		line = strings.TrimSpace(line)
+		line = strings.ReplaceAll(strings.TrimSpace(line), "\n", "")
 		if len(line) == 0 || strings.HasPrefix(line, "#") {
 			continue
 		}
 		batch = append(batch, line)
 		if len(batch)%1000 == 0 {
-			queryFunc := func() error {
-				for _, id := range batch {
-					quoted = append(quoted, fmt.Sprintf("%q", id))
-				}
-				query := fmt.Sprintf(`{"query": {"ids": {"type": "_doc", "values": [%s]}`, strings.Join(quoted, ", "))
-				if *index == "" {
-					link = fmt.Sprintf("%s/_search", *server)
-				} else {
-					link = fmt.Sprintf("%s/%s/_search", *server, *index)
-				}
-				req, err := http.NewRequest("GET", link, strings.NewReader(query))
-				if err != nil {
-					return err
-				}
-				resp, err := pester.Do(req)
-				if err != nil {
-					return err
-				}
-				defer resp.Body.Close()
-				if _, err := io.Copy(w, resp.Body); err != nil {
-					return err
-				}
-				if _, err := io.WriteString(w, "\n"); err != nil {
-					return err
-				}
-				batch, quoted = batch[:0], quoted[:0]
-				return nil
-			}
-			if err := queryFunc(); err != nil {
+			if err := queryFunc(batch); err != nil {
 				return err
 			}
+			batch = batch[:0]
 		}
+	}
+	if err := queryFunc(batch); err != nil {
+		return err
 	}
 	return nil
 }
@@ -276,8 +287,11 @@ func main() {
 	case *idsFile != "":
 		var r io.Reader
 		if _, err := os.Stat(*idsFile); os.IsNotExist(err) {
-			ids := strings.Join(strings.Fields(*idsFile), "\n")
-			r = strings.NewReader(ids)
+			var buf bytes.Buffer
+			for _, field := range strings.Fields(*idsFile) {
+				fmt.Fprintln(&buf, strings.TrimSpace(field))
+			}
+			r = &buf
 		} else {
 			f, err := os.Open(*idsFile)
 			if err != nil {
