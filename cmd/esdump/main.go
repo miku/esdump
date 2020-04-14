@@ -75,7 +75,7 @@ type SearchResponse struct {
 type BasicScroller struct {
 	Server string // https://search.elastic.io
 	Index  string
-	Query  string // note: query is not escaped or encoded, e.g. use 'hello+world' or 'name:"alonzo+church"'
+	Query  string // query_string query, will be url escaped, so ok to write: '(f:value) OR (g:"hi there")'
 	Scroll string // context timeout, e.g. "5m"
 	Size   int    // number of docs per request
 
