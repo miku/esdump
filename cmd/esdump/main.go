@@ -207,7 +207,6 @@ func identifierDump(r io.Reader, w io.Writer) error {
 		batch []string
 	)
 	queryFunc := func(batch []string) error {
-		log.Println(batch)
 		var (
 			quoted []string
 			link   string
@@ -218,7 +217,7 @@ func identifierDump(r io.Reader, w io.Writer) error {
 		// TODO: marshal this.
 		query := fmt.Sprintf(`{"query": {"ids": {"values": [%s]}}}`, strings.Join(quoted, ", "))
 		if *verbose {
-			log.Printf("%s", shorten(query, 80))
+			log.Printf("%s (%d ids)", shorten(query, 80), len(quoted))
 		}
 		if *index == "" {
 			link = fmt.Sprintf("%s/_search", *server)
