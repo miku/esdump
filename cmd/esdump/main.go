@@ -7,6 +7,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"flag"
@@ -16,6 +17,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/sethgrid/pester"
@@ -30,6 +32,7 @@ var (
 	size        = flag.Int("size", 1000, "batch size")
 	verbose     = flag.Bool("verbose", false, "be verbose")
 	showVersion = flag.Bool("v", false, "show version")
+	idsFile     = flag.String("ids", "", "a path to a file with one id per line to fetch")
 
 	exampleUsage = `esdump uses the elasticsearch scroll API to stream
 documents to stdout. First written to extract samples from
@@ -196,6 +199,65 @@ func (s *BasicScroller) Total() int {
 	return s.total
 }
 
+// identifierDump reads each line (id) from r and will create batched ids
+// requests and will write the responses to the given writer.
+func identifierDump(r io.Reader, w io.Writer) error {
+	var (
+		br     = bufio.NewReader(r)
+		batch  []string
+		quoted []string
+		link   string
+	)
+	for {
+		line, err := br.ReadString('\n')
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		line = strings.TrimSpace(line)
+		if len(line) == 0 || strings.HasPrefix(line, "#") {
+			continue
+		}
+		batch = append(batch, line)
+		if len(batch)%1000 == 0 {
+			queryFunc := func() error {
+				for _, id := range batch {
+					quoted = append(quoted, fmt.Sprintf("%q", id))
+				}
+				query := fmt.Sprintf(`{"query": {"ids": {"type": "_doc", "values": [%s]}`, strings.Join(quoted, ", "))
+				if *index == "" {
+					link = fmt.Sprintf("%s/_search", *server)
+				} else {
+					link = fmt.Sprintf("%s/%s/_search", *server, *index)
+				}
+				req, err := http.NewRequest("GET", link, strings.NewReader(query))
+				if err != nil {
+					return err
+				}
+				resp, err := pester.Do(req)
+				if err != nil {
+					return err
+				}
+				defer resp.Body.Close()
+				if _, err := io.Copy(w, resp.Body); err != nil {
+					return err
+				}
+				if _, err := io.WriteString(w, "\n"); err != nil {
+					return err
+				}
+				batch, quoted = batch[:0], quoted[:0]
+				return nil
+			}
+			if err := queryFunc(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), exampleUsage)
@@ -210,21 +272,42 @@ func main() {
 	if !*verbose {
 		log.SetOutput(ioutil.Discard)
 	}
-	ss := &BasicScroller{
-		Server: *server,
-		Size:   *size,
-		Index:  *index,
-		Query:  *query,
-		Scroll: *scroll,
-	}
-	for ss.Next() {
-		fmt.Println(ss)
-	}
-	if ss.Err() != nil {
-		log.Fatal(ss.Err())
-	}
-	if *verbose {
-		log.Printf("%d docs in %v (%d docs/s)", ss.Total(), ss.Elapsed(), int(float64(ss.Total())/ss.Elapsed().Seconds()))
+	switch {
+	case *idsFile != "":
+		var r io.Reader
+		if _, err := os.Stat(*idsFile); os.IsNotExist(err) {
+			ids := strings.Join(strings.Fields(*idsFile), "\n")
+			r = strings.NewReader(ids)
+		} else {
+			f, err := os.Open(*idsFile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer f.Close()
+			r = f
+		}
+		bw := bufio.NewWriter(os.Stdout)
+		defer bw.Flush()
+		if err := identifierDump(r, bw); err != nil {
+			log.Fatal(err)
+		}
+	default:
+		ss := &BasicScroller{
+			Server: *server,
+			Size:   *size,
+			Index:  *index,
+			Query:  *query,
+			Scroll: *scroll,
+		}
+		for ss.Next() {
+			fmt.Println(ss)
+		}
+		if ss.Err() != nil {
+			log.Fatal(ss.Err())
+		}
+		if *verbose {
+			log.Printf("%d docs in %v (%d docs/s)", ss.Total(), ss.Elapsed(), int(float64(ss.Total())/ss.Elapsed().Seconds()))
+		}
 	}
 }
 
