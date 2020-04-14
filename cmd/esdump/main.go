@@ -255,7 +255,8 @@ func identifierDump(r io.Reader, w io.Writer) error {
 			continue
 		}
 		batch = append(batch, line)
-		if len(batch)%1000 == 0 {
+		// Use smaller batch size, since we use GET.
+		if len(batch)%20 == 0 {
 			if err := queryFunc(batch); err != nil {
 				return err
 			}
