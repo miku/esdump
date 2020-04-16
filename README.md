@@ -27,10 +27,9 @@ Or via a [release](https://github.com/miku/esdump/releases).
 ## Usage
 
 ```
-esdump uses the elasticsearch scroll API to stream
-documents to stdout. First written to extract samples from
-https:/search.fatcat.wiki (a scholarly communications preservation and
-discovery project).
+esdump uses the elasticsearch scroll API to stream documents to stdout. First
+written to extract samples from https:/search.fatcat.wiki (a scholarly
+communications preservation and discovery project).
 
     $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web archiving'
 
