@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	query       = flag.String("q", "web archiving", `query to run, empty means match all, example: 'affiliation:"alberta"'`)
+	query       = flag.String("q", "*", `query to run, empty means match all, example: 'affiliation:"alberta"'`)
 	index       = flag.String("i", "fatcat_release", "index name")
 	server      = flag.String("s", "https://search.fatcat.wiki", "elasticsearch server")
 	scroll      = flag.String("scroll", "5m", "context timeout")
