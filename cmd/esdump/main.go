@@ -103,6 +103,7 @@ func (s *BasicScroller) initialRequest() (id string, err error) {
 		return
 	}
 	defer resp.Body.Close()
+	s.buf.Reset()
 	tee := io.TeeReader(resp.Body, &s.buf)
 	if err = json.NewDecoder(tee).Decode(&sr); err != nil {
 		return
@@ -123,31 +124,29 @@ func (s *BasicScroller) Next() bool {
 		s.id, s.err = s.initialRequest()
 		return s.err == nil
 	}
-	if s.err != nil {
-		return false
-	}
-	var payload = struct {
-		Scroll   string `json:"scroll"`
-		ScrollID string `json:"scroll_id"`
-	}{
-		Scroll:   s.Scroll,
-		ScrollID: s.id,
-	}
 	var (
+		payload = struct {
+			Scroll   string `json:"scroll"`
+			ScrollID string `json:"scroll_id"`
+		}{
+			Scroll:   s.Scroll,
+			ScrollID: s.id,
+		}
 		link = fmt.Sprintf("%s/_search/scroll", s.Server)
 		buf  bytes.Buffer
 		req  *http.Request
 		resp *http.Response
+		sr   SearchResponse
 	)
 	enc := json.NewEncoder(&buf)
 	if s.err = enc.Encode(payload); s.err != nil {
 		return false
 	}
 	req, s.err = http.NewRequest("GET", link, &buf)
-	req.Header.Add("Content-Type", "application/json")
 	if s.err != nil {
 		return false
 	}
+	req.Header.Add("Content-Type", "application/json")
 	log.Printf("%s [%d] [...]", req.URL, buf.Len())
 	resp, s.err = pester.Do(req)
 	if s.err != nil {
@@ -159,8 +158,7 @@ func (s *BasicScroller) Next() bool {
 		log.Printf("body was: %s", trim(s.buf.String(), 1024, fmt.Sprintf("... (%d)", s.buf.Len())))
 		return false
 	}
-	var sr SearchResponse
-	if s.err = json.Unmarshal(s.buf.Bytes(), &sr); s.err != nil {
+	if s.err = json.NewDecoder(s.buf).Decode(&sr); s.err != nil {
 		return false
 	}
 	s.id = sr.ScrollID
