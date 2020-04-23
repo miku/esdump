@@ -32,6 +32,7 @@ var (
 	verbose     = flag.Bool("verbose", false, "be verbose")
 	showVersion = flag.Bool("v", false, "show version")
 	idsFile     = flag.String("ids", "", "a path to a file with one id per line to fetch")
+	massQuery   = flag.String("mq", "", "path to file, one lucene query per line")
 
 	exampleUsage = `esdump uses the elasticsearch scroll API to stream
 documents to stdout. First written to extract samples from
@@ -151,6 +152,14 @@ func main() {
 		if err := identifierDump(r, bw); err != nil {
 			log.Fatal(err)
 		}
+	case *massQuery:
+		// Read lines from file, run MassQuery.
+		mq := esdump.MassQuery{
+			Server: *server,
+			Index:  *index,
+			Writer: os.Stdout,
+		}
+		// TODO: Abtract various reading routines.
 	default:
 		ss := &esdump.BasicScroller{
 			Server: *server,
