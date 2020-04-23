@@ -171,7 +171,7 @@ func (s *BasicScroller) Next() bool {
 	if len(sr.Hits.Hits) == 0 && int64(s.total) != sr.Hits.Total {
 		log.Printf("warn: partial result")
 	}
-	return len(sr.Hits.Hits) > 0 && int64(s.total) < sr.Hits.Total
+	return len(sr.Hits.Hits) > 0 && int64(s.total) <= sr.Hits.Total
 }
 
 // Bytes returns the current response body.
