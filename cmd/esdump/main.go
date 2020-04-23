@@ -158,7 +158,7 @@ func (s *BasicScroller) Next() bool {
 		log.Printf("body was: %s", trim(s.buf.String(), 1024, fmt.Sprintf("... (%d)", s.buf.Len())))
 		return false
 	}
-	if s.err = json.NewDecoder(s.buf).Decode(&sr); s.err != nil {
+	if s.err = json.NewDecoder(&s.buf).Decode(&sr); s.err != nil {
 		return false
 	}
 	s.id = sr.ScrollID
