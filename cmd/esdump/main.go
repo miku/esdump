@@ -42,7 +42,7 @@ discovery project).
     $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web archiving'
 
 `
-	Version   = "0.1.5"
+	Version   = "0.1.6"
 	Commit    = "dev"
 	Buildtime = ""
 )
