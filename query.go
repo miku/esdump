@@ -13,6 +13,8 @@ import (
 // MassQuery runs many requests in parallel. Does no pagination. Useful for the
 // moment to get the result set size for a given query.  TODO: This is just a
 // special case to request many URL in parallel and combining the results.
+// TODO: Look into "multisearch",
+// https://www.elastic.co/guide/en/elasticsearch/reference/current/search-multi-search.html.
 type MassQuery struct {
 	Server  string // https://search.elastic.io
 	Index   string
