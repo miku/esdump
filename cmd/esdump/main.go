@@ -9,6 +9,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -152,12 +153,34 @@ func main() {
 		if err := identifierDump(r, bw); err != nil {
 			log.Fatal(err)
 		}
-	case *massQuery:
+	case *massQuery != "":
 		// Read lines from file, run MassQuery.
+		f, err := os.Open(*massQuery)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer f.Close()
+		br := bufio.NewReader(f)
+		var queries []string
+		for {
+			line, err := br.ReadString('\n')
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Fatal(err)
+			}
+			queries = append(queries, strings.TrimSpace(line))
+		}
 		mq := esdump.MassQuery{
-			Server: *server,
-			Index:  *index,
-			Writer: os.Stdout,
+			Server:  *server,
+			Index:   *index,
+			Queries: queries,
+			Size:    0,
+			Writer:  os.Stdout,
+		}
+		if err := mq.Run(context.Background()); err != nil {
+			log.Fatal(err)
 		}
 		// TODO: Abtract various reading routines.
 	default:

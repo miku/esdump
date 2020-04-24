@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/url"
 
 	"github.com/sethgrid/pester"
 	"golang.org/x/sync/errgroup"
 )
 
-// MassQuery runs many requests in parallel. Does no pagination.
+// MassQuery runs many requests in parallel. Does no pagination. Useful for the
+// moment to get the result set size for a given query.  TODO: This is just a
+// special case to request many URL in parallel and combining the results.
 type MassQuery struct {
 	Server  string // https://search.elastic.io
 	Index   string
@@ -28,23 +29,6 @@ func (q *MassQuery) Run(ctx context.Context) error {
 		done = make(chan bool)
 		w    = q.Writer
 	)
-	for _, query := range q.Queries {
-		g.Go(func() error {
-			link := fmt.Sprintf(`%s/%s/_search?size=%d&q=%s`,
-				q.Server, q.Index, q.Size, url.QueryEscape(query))
-			resp, err := pester.Get(link)
-			if err != nil {
-				return err
-			}
-			defer resp.Body.Close()
-			b, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				return err
-			}
-			ch <- b
-			return nil
-		})
-	}
 	go func() {
 		// Write out all results.
 		for blob := range ch {
@@ -60,6 +44,30 @@ func (q *MassQuery) Run(ctx context.Context) error {
 		}
 		done <- true
 	}()
+
+	// Bounded concurrency.
+	sem := make(chan struct{}, 4)
+
+	for _, query := range q.Queries {
+		sem <- struct{}{}
+		query := query
+		g.Go(func() error {
+			link := fmt.Sprintf(`%s/%s/_search?size=%d&q=%s`,
+				q.Server, q.Index, q.Size, query)
+			resp, err := pester.Get(link)
+			if err != nil {
+				return err
+			}
+			defer resp.Body.Close()
+			b, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return err
+			}
+			ch <- b
+			<-sem
+			return nil
+		})
+	}
 	if err := g.Wait(); err != nil {
 		return err
 	}
