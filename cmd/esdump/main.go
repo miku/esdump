@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -117,6 +118,34 @@ func identifierDump(r io.Reader, w io.Writer) error {
 	return nil
 }
 
+// unifyQuery turns a raw query into JSON, and leaves JSON as is. If q is a
+// filename, read file contents.
+func unifyQuery(q string) (string, error) {
+	if _, err := os.Stat(q); err == nil {
+		b, err := ioutil.ReadFile(q)
+		if err != nil {
+			return "", err
+		}
+		return string(b), nil
+	}
+	dummy := make(map[string]interface{})
+	if err := json.Unmarshal([]byte(q), &dummy); err != nil {
+		// This is not JSON, create a query_string query JSON.
+		b, err := json.Marshal(map[string]interface{}{
+			"query": map[string]interface{}{
+				"query_string": map[string]interface{}{
+					"query": q,
+				},
+			},
+		})
+		if err != nil {
+			return q, err
+		}
+		return string(b), nil
+	}
+	return q, nil
+}
+
 func main() {
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), exampleUsage)
@@ -184,11 +213,17 @@ func main() {
 		}
 		// TODO: Abtract various reading routines.
 	default:
+		q, err := unifyQuery(*query)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// TODO: allow for complex queries, e.g. check whether the given query
+		// is valid JSON.
 		ss := &esdump.BasicScroller{
 			Server: *server,
 			Size:   *size,
 			Index:  *index,
-			Query:  *query,
+			Query:  q,
 			Scroll: *scroll,
 		}
 		for ss.Next() {

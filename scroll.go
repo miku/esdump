@@ -7,7 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/url"
+	"strings"
 	"time"
 
 	"github.com/miku/esdump/stringutil"
@@ -60,12 +60,18 @@ type BasicScroller struct {
 func (s *BasicScroller) initialRequest() (id string, err error) {
 	s.started = time.Now()
 	var (
-		link = fmt.Sprintf(`%s/%s/_search?scroll=%s&size=%d&q=%s`, s.Server, s.Index, s.Scroll, s.Size, url.QueryEscape(s.Query))
+		link = fmt.Sprintf(`%s/%s/_search?scroll=%s&size=%d`, s.Server, s.Index, s.Scroll, s.Size)
+		req  *http.Request
 		resp *http.Response
 		sr   SearchResponse
 	)
 	log.Printf("init: %s", link)
-	resp, err = pester.Get(link)
+	req, err = http.NewRequest("GET", link, strings.NewReader(s.Query))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = pester.Do(req)
 	if err != nil {
 		return
 	}
