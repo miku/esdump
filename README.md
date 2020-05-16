@@ -36,12 +36,18 @@ communications preservation and discovery project).
 Usage of esdump:
   -i string
         index name (default "fatcat_release")
+  -ids string
+        a path to a file with one id per line to fetch
+  -l int
+        limit number of documents fetched, zero means no limit
+  -mq string
+        path to file, one lucene query per line
   -q string
-        query to run, empty means match all, example: 'affiliation:"alberta"' (default "web archiving")
+        lucene syntax query to run, example: 'affiliation:"alberta"' (default "*")
   -s string
         elasticsearch server (default "https://search.fatcat.wiki")
   -scroll string
-        context timeout (default "10m")
+        context timeout (default "5m")
   -size int
         batch size (default 1000)
   -v    show version
