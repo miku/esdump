@@ -35,6 +35,7 @@ var (
 	showVersion = flag.Bool("v", false, "show version")
 	idsFile     = flag.String("ids", "", "a path to a file with one id per line to fetch")
 	massQuery   = flag.String("mq", "", "path to file, one lucene query per line")
+	limit       = flag.Int("l", 0, "limit number of documents fetched, zero means no limit")
 
 	exampleUsage = `esdump uses the elasticsearch scroll API to stream
 documents to stdout. First written to extract samples from
@@ -217,8 +218,6 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		// TODO: allow for complex queries, e.g. check whether the given query
-		// is valid JSON.
 		ss := &esdump.BasicScroller{
 			Server: *server,
 			Size:   *size,
@@ -226,8 +225,16 @@ func main() {
 			Query:  q,
 			Scroll: *scroll,
 		}
+		var i int
 		for ss.Next() {
 			fmt.Println(ss)
+			i += *size
+			if *limit > 0 && i >= *limit {
+				if *verbose {
+					log.Printf("limit: fetched %d docs", i)
+				}
+				break
+			}
 		}
 		if ss.Err() != nil {
 			log.Fatal(ss.Err())
