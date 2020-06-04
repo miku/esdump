@@ -99,7 +99,7 @@ func (s *BasicScroller) Next() bool {
 		return s.err == nil
 	}
 	var (
-		retry = -3
+		retry = -5
 		sleep = 10 * time.Second
 		sr    SearchResponse
 	)
