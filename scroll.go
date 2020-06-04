@@ -43,11 +43,12 @@ type SearchResponse struct {
 // Not using the official library since esapi (may) use POST (and other verbs),
 // whereas some endpoints disallow anything but GET requests.
 type BasicScroller struct {
-	Server string // https://search.elastic.io
-	Index  string
-	Query  string // query_string query, will be url escaped, so ok to write: '(f:value) OR (g:"hi there")'
-	Scroll string // context timeout, e.g. "5m"
-	Size   int    // number of docs per request
+	Server     string // https://search.elastic.io
+	Index      string
+	Query      string // query_string query, will be url escaped, so ok to write: '(f:value) OR (g:"hi there")'
+	Scroll     string // context timeout, e.g. "5m"
+	Size       int    // number of docs per request
+	MaxRetries int    // Retry of stranger things, like "unexpected EOF"
 
 	id      string       // will be determined by first request, might change during the scroll
 	buf     bytes.Buffer // buffer for response body
@@ -98,39 +99,55 @@ func (s *BasicScroller) Next() bool {
 		return s.err == nil
 	}
 	var (
-		payload = struct {
-			Scroll   string `json:"scroll"`
-			ScrollID string `json:"scroll_id"`
-		}{
-			Scroll:   s.Scroll,
-			ScrollID: s.id,
-		}
-		link = fmt.Sprintf("%s/_search/scroll", s.Server)
-		buf  bytes.Buffer
-		req  *http.Request
-		resp *http.Response
-		sr   SearchResponse
+		retry = -3
+		sleep = 10 * time.Second
+		sr    SearchResponse
 	)
-	enc := json.NewEncoder(&buf)
-	if s.err = enc.Encode(payload); s.err != nil {
-		return false
-	}
-	req, s.err = http.NewRequest("GET", link, &buf)
-	if s.err != nil {
-		return false
-	}
-	req.Header.Add("Content-Type", "application/json")
-	log.Printf("%s [%d] [...]", req.URL, buf.Len())
-	resp, s.err = pester.Do(req)
-	if s.err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-	s.buf.Reset()
-	if _, s.err = io.Copy(&s.buf, resp.Body); s.err != nil {
+	// Only wrapped in a loop to escape unexpected EOF, other errors are not
+	// retried.
+	for {
+		if retry == s.MaxRetries {
+			s.err = fmt.Errorf("max retries exceeded")
+			return false
+		}
+		var (
+			payload = struct {
+				Scroll   string `json:"scroll"`
+				ScrollID string `json:"scroll_id"`
+			}{
+				Scroll:   s.Scroll,
+				ScrollID: s.id,
+			}
+			link = fmt.Sprintf("%s/_search/scroll", s.Server)
+			buf  bytes.Buffer
+			req  *http.Request
+			resp *http.Response
+		)
+		enc := json.NewEncoder(&buf)
+		if s.err = enc.Encode(payload); s.err != nil {
+			return false
+		}
+		req, s.err = http.NewRequest("GET", link, &buf)
+		if s.err != nil {
+			return false
+		}
+		req.Header.Add("Content-Type", "application/json")
+		log.Printf("%s [%d] [...]", req.URL, buf.Len())
+		resp, s.err = pester.Do(req)
+		if s.err != nil {
+			return false
+		}
+		defer resp.Body.Close()
+		s.buf.Reset()
+		_, s.err = io.Copy(&s.buf, resp.Body) // we get an occasional "unexpected EOF" here, but why?
+		if s.err == nil {
+			break
+		}
 		log.Printf("body was: %s", stringutil.Trim(s.buf.String(), 1024, fmt.Sprintf("... (%d)", s.buf.Len())))
 		log.Printf("failed to copy response body: %v (%s)", s.err, link)
-		return false
+		log.Printf("retrying in %s", sleep)
+		time.Sleep(sleep)
+		retry++
 	}
 	if s.err = json.Unmarshal(s.buf.Bytes(), &sr); s.err != nil {
 		return false
