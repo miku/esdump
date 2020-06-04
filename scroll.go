@@ -129,6 +129,7 @@ func (s *BasicScroller) Next() bool {
 	s.buf.Reset()
 	if _, s.err = io.Copy(&s.buf, resp.Body); s.err != nil {
 		log.Printf("body was: %s", stringutil.Trim(s.buf.String(), 1024, fmt.Sprintf("... (%d)", s.buf.Len())))
+		log.Printf("failed to copy response body: %v (%s)", s.err, link)
 		return false
 	}
 	if s.err = json.Unmarshal(s.buf.Bytes(), &sr); s.err != nil {
