@@ -158,7 +158,7 @@ func (s *BasicScroller) Next() bool {
 		s.total, sr.Hits.Total, float64(s.total)/float64(sr.Hits.Total)*100, s.buf.Len())
 	log.Println(stringutil.Shorten(s.id, 40))
 	if len(sr.Hits.Hits) == 0 && int64(s.total) != sr.Hits.Total {
-		log.Printf("warn: partial result")
+		log.Printf("warn: partial result") // changes in the index?
 	}
 	return len(sr.Hits.Hits) > 0 && int64(s.total) <= sr.Hits.Total
 }
