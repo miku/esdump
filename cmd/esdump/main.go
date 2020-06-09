@@ -215,6 +215,9 @@ func main() {
 		// TODO: Abtract various reading routines.
 	default:
 		q, err := unifyQuery(*query)
+		if *verbose {
+			log.Printf("%v", q)
+		}
 		if err != nil {
 			log.Fatal(err)
 		}
