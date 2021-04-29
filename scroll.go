@@ -24,8 +24,8 @@ type SearchResponse struct {
 			Source json.RawMessage `json:"_source"`
 			Type   string          `json:"_type"`
 		} `json:"hits"`
-		MaxScore float64 `json:"max_score"`
-		Total    int64   `json:"total"`
+		MaxScore   float64     `json:"max_score"`
+		TotalValue interface{} `json:"total"`
 	} `json:"hits"`
 	ScrollID string `json:"_scroll_id"`
 	Shards   struct {
@@ -36,6 +36,28 @@ type SearchResponse struct {
 	} `json:"_shards"`
 	TimedOut bool  `json:"timed_out"`
 	Took     int64 `json:"took"`
+}
+
+// Total handles elasticsearch v6/v7 api changes.
+func (s *SearchResponse) Total() int64 {
+	switch v := s.Hits.TotalValue.(type) {
+	case int:
+		// v6
+		return int64(v)
+	case int64:
+		// v6
+		return int64(v)
+	default:
+		// v7
+		if m, ok := s.Hits.TotalValue.(map[string]interface{}); !ok {
+			log.Printf("cannot determine total value")
+		}
+		value, ok := m["value"]
+		if !ok {
+			log.Printf("cannot access total value")
+		}
+		return int64(value)
+	}
 }
 
 // BasicScroller abstracts iteration over larger result sets via
@@ -155,12 +177,12 @@ func (s *BasicScroller) Next() bool {
 	s.id = sr.ScrollID
 	s.total += len(sr.Hits.Hits)
 	log.Printf("fetched=%d/%d (%0.2f%%), received=%d",
-		s.total, sr.Hits.Total, float64(s.total)/float64(sr.Hits.Total)*100, s.buf.Len())
+		s.total, sr.Total(), float64(s.total)/float64(sr.Total())*100, s.buf.Len())
 	log.Println(stringutil.Shorten(s.id, 40))
-	if len(sr.Hits.Hits) == 0 && int64(s.total) != sr.Hits.Total {
+	if len(sr.Hits.Hits) == 0 && int64(s.total) != sr.Total() {
 		log.Printf("warn: partial result") // changes in the index?
 	}
-	return len(sr.Hits.Hits) > 0 && int64(s.total) <= sr.Hits.Total
+	return len(sr.Hits.Hits) > 0 && int64(s.total) <= sr.Total()
 }
 
 // Bytes returns the current response body.
