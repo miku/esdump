@@ -49,15 +49,15 @@ func (s *SearchResponse) Total() int64 {
 		return int64(v)
 	default:
 		// v7
-		if m, ok := s.Hits.TotalValue.(map[string]interface{}); !ok {
-			log.Printf("cannot determine total value")
+		if m, ok := s.Hits.TotalValue.(map[string]interface{}); ok {
+			if value, ok := m["value"]; ok {
+				if f, ok := value.(float64); ok {
+					return int64(f)
+				}
+			}
 		}
-		value, ok := m["value"]
-		if !ok {
-			log.Printf("cannot access total value")
-		}
-		return int64(value)
 	}
+	return 0
 }
 
 // BasicScroller abstracts iteration over larger result sets via
