@@ -41,6 +41,9 @@ type SearchResponse struct {
 // Total handles elasticsearch v6/v7 api changes.
 func (s *SearchResponse) Total() int64 {
 	switch v := s.Hits.TotalValue.(type) {
+	case float64:
+		// v6
+		return int64(v)
 	case int:
 		// v6
 		return int64(v)
