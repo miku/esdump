@@ -37,10 +37,10 @@ var (
 	massQuery   = flag.String("mq", "", "path to file, one lucene query per line")
 	limit       = flag.Int("l", 0, "limit number of documents fetched, zero means no limit")
 
-	exampleUsage = `esdump uses the elasticsearch scroll API to stream
-documents to stdout. First written to extract samples from
-https://search.fatcat.wiki (a scholarly communications preservation and
-discovery project).
+	exampleUsage = `esdump uses the elasticsearch scroll API to stream documents to stdout.
+
+Originally written to extract samples from https://search.fatcat.wiki (a
+scholarly communications preservation and discovery project).
 
     $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web archiving'
 
