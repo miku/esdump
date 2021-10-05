@@ -25,7 +25,7 @@ type MassQuery struct {
 }
 
 func (q *MassQuery) Run(ctx context.Context) error {
-	g, ctx := errgroup.WithContext(ctx)
+	g, _ := errgroup.WithContext(ctx)
 	var (
 		ch   = make(chan []byte)
 		done = make(chan bool)
