@@ -3,7 +3,6 @@
 // be more generic. It uses HTTP GET only.
 //
 // $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web archiving'
-//
 package main
 
 import (
@@ -45,7 +44,7 @@ scholarly communications preservation and discovery project).
     $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web archiving'
 
 `
-	Version   = "0.1.9"
+	Version   = "0.1.10"
 	Commit    = "dev"
 	Buildtime = ""
 )
@@ -240,7 +239,8 @@ func main() {
 			}
 		}
 		if ss.Err() != nil {
-			log.Fatal(ss.Err())
+			log.Printf(ss.String())
+			log.Fatalf("failed with: %v", ss.Err())
 		}
 		if *verbose {
 			log.Printf("%d docs in %v (%d docs/s)", ss.Total(), ss.Elapsed(),
