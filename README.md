@@ -19,7 +19,7 @@ so this tools work with read-only servers, that only allow GET.
 ## Install
 
 ```
-$ go get github.com/miku/esdump/cmd/esdump
+$ go install github.com/miku/esdump/cmd/esdump@latest
 ```
 
 Or via a [release](https://github.com/miku/esdump/releases).
