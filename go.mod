@@ -9,5 +9,5 @@ require (
 	github.com/sethgrid/pester v1.2.0
 	github.com/sirupsen/logrus v1.9.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
 )
