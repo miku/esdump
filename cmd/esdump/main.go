@@ -25,16 +25,17 @@ import (
 )
 
 var (
-	query       = flag.String("q", "*", `lucene syntax query to run, example: 'affiliation:"alberta"'`)
-	index       = flag.String("i", "fatcat_release", "index name")
-	server      = flag.String("s", "https://search.fatcat.wiki", "elasticsearch server")
-	scroll      = flag.String("scroll", "5m", "context timeout")
-	size        = flag.Int("size", 1000, "batch size")
-	verbose     = flag.Bool("verbose", false, "be verbose")
-	showVersion = flag.Bool("v", false, "show version")
-	idsFile     = flag.String("ids", "", "a path to a file with one id per line to fetch")
-	massQuery   = flag.String("mq", "", "path to file, one lucene query per line")
-	limit       = flag.Int("l", 0, "limit number of documents fetched, zero means no limit")
+	query           = flag.String("q", "*", `lucene syntax query to run, example: 'affiliation:"alberta"'`)
+	index           = flag.String("i", "fatcat_release", "index name")
+	server          = flag.String("s", "https://search.fatcat.wiki", "elasticsearch server")
+	scroll          = flag.String("scroll", "5m", "context timeout")
+	size            = flag.Int("size", 1000, "batch size")
+	verbose         = flag.Bool("verbose", false, "be verbose")
+	showVersion     = flag.Bool("v", false, "show version")
+	idsFile         = flag.String("ids", "", "a path to a file with one id per line to fetch")
+	massQuery       = flag.String("mq", "", "path to file, one lucene query per line")
+	limit           = flag.Int("l", 0, "limit number of documents fetched, zero means no limit")
+	defaultOperator = flag.String("op", "AND", "default operator for query string queries")
 
 	exampleUsage = `esdump uses the elasticsearch scroll API to stream documents to stdout.
 
@@ -134,7 +135,8 @@ func unifyQuery(q string) (string, error) {
 		b, err := json.Marshal(map[string]interface{}{
 			"query": map[string]interface{}{
 				"query_string": map[string]interface{}{
-					"query": q,
+					"query":            q,
+					"default_operator": *defaultOperator,
 				},
 			},
 		})
