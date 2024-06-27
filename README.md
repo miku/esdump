@@ -55,8 +55,12 @@ Usage of esdump:
         be verbose
 ```
 
-## Performance data points
+## Performance data point(s)
 
 ```
 925636 docs in 4m47.460217252s (3220 docs/s)
 ```
+
+## TODO
+
+* [ ] move to [`search_after`](https://www.elastic.co/guide/en/elasticsearch/reference/current/scroll-api.html)
