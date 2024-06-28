@@ -45,7 +45,7 @@ scholarly communications preservation and discovery project).
     $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web archiving'
 
 `
-	Version   = "0.1.11"
+	Version   = "0.2.0"
 	Commit    = "dev"
 	Buildtime = ""
 )

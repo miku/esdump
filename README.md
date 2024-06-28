@@ -4,7 +4,7 @@ Stream docs from Elasticsearch to stdout for ad-hoc data mangling using the
 [Scroll
 API](https://www.elastic.co/guide/en/elasticsearch/guide/master/scroll.html#scroll).
 Just like [solrdump](https://github.com/ubleipzig/solrdump), but for
-[elasticsearch](https://elastic.co/).
+[elasticsearch](https://elastic.co/). Since esdump 0.1.11, the default operator can be set explicitly and changed from `OR` to `AND`.
 
 Libraries can use both GET and POST requests to issue scroll requests.
 
@@ -27,13 +27,14 @@ Or via a [release](https://github.com/miku/esdump/releases).
 ## Usage
 
 ```
-esdump uses the elasticsearch scroll API to stream documents to stdout. First
-written to extract samples from https://search.fatcat.wiki (a scholarly
-communications preservation and discovery project).
+esdump uses the elasticsearch scroll API to stream documents to stdout.
+
+Originally written to extract samples from https://search.fatcat.wiki (a
+scholarly communications preservation and discovery project).
 
     $ esdump -s https://search.fatcat.wiki -i fatcat_release -q 'web archiving'
 
-Usage of esdump:
+Usage of ./esdump:
   -i string
         index name (default "fatcat_release")
   -ids string
@@ -42,6 +43,8 @@ Usage of esdump:
         limit number of documents fetched, zero means no limit
   -mq string
         path to file, one lucene query per line
+  -op string
+        default operator for query string queries (default "AND")
   -q string
         lucene syntax query to run, example: 'affiliation:"alberta"' (default "*")
   -s string
